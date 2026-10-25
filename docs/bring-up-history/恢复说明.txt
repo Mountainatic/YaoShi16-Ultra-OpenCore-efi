@@ -1,0 +1,17 @@
+恢复说明（此目录本身不是一个独立的启动盘）
+
+本轮仅把 EFI/OC/config.plist 的 IONDRVSupport 禁用项改为 false。
+没有更换 OpenCore，没有安装内屏驱动，没有更新内核缓存，没有自动初始化核显。
+
+第一轮保持 BIOS 独显直连（Discrete），只验证允许 Apple 固件显示回退后仍能正常启动。
+完成后回到 Codex 检查；通过后再安排 Hybrid/MSHybrid 的单独测试。
+
+若无法进入 macOS：
+1. BIOS 保持/恢复 Discrete（独显直连）。
+2. 如果仍然无法启动，进入原有 Windows（可在 BIOS 选择 Windows Boot Manager），找到 1401。
+3. 双击本目录 Restore-Discrete.cmd。脚本校验旧/新配置哈希，只恢复本轮已知配置。
+4. 若系统没有 PowerShell，可手动把 config.Discrete-before.plist 复制为 U 盘 EFI/OC/config.plist。
+5. 之后从 1401 启动。不要格式化盘，不要删除 EFI，也不要重置 NVRAM。
+
+EFI-before 是逐文件校验的完整 EFI 备份，含当前定制 OpenCore；不自动替换整个目录。
+该配置回退不卸载既有的实验 Intel 驱动，也不改变 NVIDIA 文件或 AuxKC。
