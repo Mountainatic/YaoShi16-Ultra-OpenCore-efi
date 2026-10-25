@@ -8,6 +8,7 @@
 
 - [机器配置](#机器配置)
 - [当前状态](#当前状态)
+- [USB 端口映射与后续路线](#usb-端口映射与后续路线)
 - [进行中的工作：Intel Xe iGPU](#进行中的工作intel-xe-igpu)
 - [EFI 内容总览](#efi-内容总览)
 - [使用步骤](#使用步骤)
@@ -51,13 +52,35 @@
 | 电池 | 可用 | SMCBatteryManager | 电量与充电状态 |
 | 触控板 | 可用 | VoodooI2C 2.9.1、VoodooI2C-7F4F、VoodooI2CHID | 含 VoodooGPIO 插件 |
 | 键盘与亮度键 | 可用 | VoodooPS2Controller 2.3.8、BrightnessKeys | PS2 与 I2C 两条输入路径并存 |
-| USB 端口 | 可用 | USBToolBox、UTBMap-Mountainatic | 端口映射按本机生成 |
+| USB 端口 | 部分定制 | USBToolBox、UTBMap-Mountainatic | Type-C 的 USB 2.0 与 Type-A 的 USB 3.x 已完成定制，另两组仍待补齐 |
 | NVMe 电源管理 | 可用 | NVMeFix 1.1.4 | |
 | AMFI 放宽 | 可用 | AMFIPass 1.4.1、boot-args | 允许加载未签名驱动 |
 | 有线网卡 | 驱动已加载，待验证 | RTL812xLucy 1.1.100 | 与 RTL8125 系列对应 |
 | 环境光传感器 | 驱动已加载，待验证 | SMCLightSensor 1.3.9 | |
 | 睡眠与唤醒 | 未测试 | — | 尚未研究，暂无结论 |
 | 核显内屏输出 | 开发中 | 独立项目 | 当前 60 Hz 级别时序 |
+
+
+## USB 端口映射与后续路线
+
+当前 USB 端口映射已经按本机实际接口进行定制，但四种「接口形态 × USB 代际」组合尚未全部收口：
+
+| 接口 | USB 2.0 | USB 3.x |
+| --- | --- | --- |
+| Type-C | 已定制 | 尚未定制 |
+| Type-A | 尚未定制 | 已定制 |
+
+这里的“已定制”表示对应端口已经纳入当前 USBToolBox / `UTBMap-Mountainatic` 的本机映射；“尚未定制”表示该组合仍需要继续核对端口编号、连接关系与实际枚举结果。
+
+Thunderbolt / USB4 路径目前尚未完成适配，也没有作为当前 EFI 的可用功能声明。后续如果时间和驱动条件允许，计划继续探索以下方向：
+
+- Thunderbolt / USB4 的驱动与设备枚举；
+- 将 TPM 2.0 以智能卡或安全设备形式挂载，并尝试结合内置 IR 摄像头探索人脸认证路径；
+- 功耗、睡眠与唤醒行为的进一步优化；
+- CPU 变频与调度行为的确认，重点核对 P/E 核在 macOS 下的实际频率与负载分配；
+- 机身 RGB 灯光控制的接入。
+
+以上均属于后续探索项，不代表当前已经可用。本仓库以个人实机验证为主，后续内容随缘更新。
 
 ## 进行中的工作：Intel Xe iGPU
 
@@ -199,6 +222,7 @@ x86_validate_topology() 24 threads but 1 registered from MADT
 - Intel Xe 核显的驱动仍在开发，内屏当前走独立显卡路径，核显 bring-up 使用 60 Hz 级别时序。
 - 显卡模式切换（Hybrid 与 Discrete）后需要重新验证启动与显示输出。
 - 有线网卡与环境光传感器的驱动已经加载，功能验证尚未逐项记录。
+- USB 映射当前只完成部分组合，具体状态见「USB 端口映射与后续路线」。
 - 睡眠与唤醒尚未研究，当前状态记为未测试。
 - NVIDIA 驱动安装在 macOS 内，重装系统或重建内核缓存后需要重新安装，并同步检查 `Kernel > Block` 条目。
 
