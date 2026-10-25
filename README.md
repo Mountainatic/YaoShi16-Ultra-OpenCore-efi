@@ -29,7 +29,6 @@
 | 硬盘 | 1 TB NVMe SSD |
 | 屏幕 | 16 英寸 2560x1600 240 Hz，面板 BOE NE160QDM-NZL |
 | 无线网卡 | Intel Wi-Fi + 蓝牙（CNVi / M.2 组合） |
-| 声卡 | Realtek HDA，使用 layout-id `0x1C` |
 | 有线网卡 | Realtek 2.5GbE，驱动为 RTL812xLucy（具体型号以本机为准） |
 | 操作系统 | macOS Tahoe 26.7.1（25G241） |
 | 引导器 | OpenCore 1.0.8 |
@@ -49,7 +48,6 @@
 | 内屏 HiDPI | 可用 | NvGfx 显示路径 | 日常 1920x1200 |
 | Wi-Fi | 可用 | AirportItlwm 2.4.0 | `itlwm_he=1`；`itlwm.kext` 作为备用方案保留并禁用 |
 | 蓝牙 | 可用 | IntelBluetoothFirmware、IntelBTPatcher、BlueToolFixup | 组合加载 |
-| 音频 | 可用 | AppleALC、SimpleHDA | layout-id `0x1C`；采样率降低一档时出现高频噪声，见「已知问题」 |
 | 电池 | 可用 | SMCBatteryManager | 电量与充电状态 |
 | 触控板 | 可用 | VoodooI2C 2.9.1、VoodooI2C-7F4F、VoodooI2CHID | 含 VoodooGPIO 插件 |
 | 键盘与亮度键 | 可用 | VoodooPS2Controller 2.3.8、BrightnessKeys | PS2 与 I2C 两条输入路径并存 |
@@ -88,8 +86,8 @@ Intel Xe-LPG 核显的 macOS 驱动是一个独立项目，仓库地址为 [Moun
 
 | 文件 | 大小 | 作用 |
 | --- | --- | --- |
-| `DSDT.aml` | 596,487 B | 固件 DSDT，前向 Scope 声明交由 macOS ACPICA 解释 |
-| `APIC-LAPIC.aml` | 658 B | 同机采集的 MADT，24 组处理器 UID/APIC 映射，x2APIC 条目以 Local APIC 形式呈现 |
+| `DSDT.aml` | 596,487 B | 固件 DSDT；已按本次固件的实际 GNVS 运行时地址修正 `SystemMemory` 区域，避免 AML 跨页访问错误的平台状态 |
+| `APIC-LAPIC.aml` | 658 B | Type 9 / x2APIC 兼容 MADT：将 24 个有效 Processor Local x2APIC 条目转换为传统 Local APIC 兼容表示，同时保留 UID、真实 APIC ID 与 enabled 状态 |
 | `SSDT-PLUG-ALT.aml` | 3,112 B | 处理器电源管理注入（替代方案） |
 | `SSDT-EC.aml` | 125 B | 嵌入式控制器描述 |
 | `SSDT-GPI0.aml` | 124 B | I2C GPIO 设备描述 |
@@ -166,30 +164,41 @@ debug=0x100 keepsyms=1 -vi2c-force-polling -ibtcompatbeta revpatch=sbvmm,cpuname
 
 ## 已知问题
 
-### 问题一：内核交接阶段挂起（EXITBS:START 与 Type 9 处理器）
+### 问题一：Type 9 / x2APIC 兼容
 
-现象是屏幕停在 `#【EB｜LOG:EXITBS:START】` 加时间戳一行，无法进入系统。该问题与 Arrow Lake-HX 平台的 Type 9（x2APIC）MADT 处理器条目有关，OpenCore 侧的处理器识别正常，挂起点位于 Apple 内核交接过程。
+原始 MADT 中，24 个有效 CPU 全部使用 Type 9 `Processor Local x2APIC` 条目，Type 0 `Processor Local APIC` 条目数量为 0。XNU 的早期处理器枚举路径只识别传统 Type 0 表示，因此首先得到：
 
-当前 `config.plist` 通过 `Kernel > Emulate` 的 CPUID 覆盖、`Booter > Quirks` 的内存映射与 slide 设置、以及 `ACPI > Delete` 的 DMAR 剔除完成修复。问题一已经解决，详细证据与逐项配置见 [docs/boot-issues.md](docs/boot-issues.md)。
+```text
+max_cpus_from_firmware = 0
+```
 
-### 问题二：位偏移（MADT 与 ACPI 区域修复）
+继续推进启动后，又暴露出后续拓扑注册与 MADT 枚举结果不一致：
 
-完成问题一的修复后，启动过程仍存在一个由机器所有者概括为「位偏移」的问题，涉及固件 MADT 布局与 ACPI 表的区域、偏移字段。当前配置用同机采集的 `APIC-LAPIC.aml` 替换固件 MADT，打开 `RebaseRegions`，并用 ACPI 补丁处理固件 DSDT 中的条件 Scope 声明。
+```text
+x86_validate_topology() 24 threads but 1 registered from MADT
+```
 
-当前配置可以完成启动。问题二的完整机理说明与原机验证记录仍在整理，`docs/boot-issues.md` 中留有 TODO 条目，待所有者补充。
+最终修复没有停留在早期 CPU 计数补丁，而是将固件中有效的 Type 9 CPU 转换为传统 Local APIC 兼容表示，并保留每个处理器的 UID、真实 APIC ID 与 enabled 状态。这样，XNU 的早期 CPU 计数和后续 AppleACPICPU 注册读取的是同一套兼容 MADT。
 
-### 音频：采样率降低一档时出现尖锐噪声
+修正后，24 核拓扑可以完整注册，XNU 真正继续进入 Recovery。当前配置通过删除固件 `APIC` 表并加载 `APIC-LAPIC.aml` 提供这套兼容表示。
 
-声卡在日常档位下工作正常。把输出采样率从当前档位向下一档调整后，播放会出现持续的高频尖锐声音；把采样率调回原档位或再向上一档调整，声音恢复正常。
+### 问题二：DSDT / GNVS 运行时地址偏移
 
-临时方案是在「音频 MIDI 设置」中把输出采样率保持在当前档位，或者向上一档调整。该现象与采样率切换相关，具体原因尚未定位，记录在此供同型号机器对照。
+此前替换 DSDT 中的 GNVS `SystemMemory` 地址时，写入值比本次固件实际运行时地址偏移了 `0x1000`。这一页级偏移会使 ACPI AML 从错误的物理页读取或写入平台状态，因此可能同时影响 PCI、USB、I2C 与电源相关资源。
+
+将 GNVS 地址修正为本次固件的实际运行时地址后，原机观察到：
+
+- USB 鼠标恢复；
+- 内置 NVMe 正常枚举；
+- Recovery 可以正常操作。
+
+因此当前 DSDT 使用已经校正的 GNVS 运行时地址，相关 ACPI 区域与后续设备枚举均以该地址为基础。
 
 ### 其他注意事项
 
 - Intel Xe 核显的驱动仍在开发，内屏当前走独立显卡路径，核显 bring-up 使用 60 Hz 级别时序。
 - 显卡模式切换（Hybrid 与 Discrete）后需要重新验证启动与显示输出。
 - 有线网卡与环境光传感器的驱动已经加载，功能验证尚未逐项记录。
-- 音频采样率降低一档时出现高频噪声，处理方式见上一节。
 - 睡眠与唤醒尚未研究，当前状态记为未测试。
 - NVIDIA 驱动安装在 macOS 内，重装系统或重建内核缓存后需要重新安装，并同步检查 `Kernel > Block` 条目。
 
@@ -198,12 +207,12 @@ debug=0x100 keepsyms=1 -vi2c-force-polling -ibtcompatbeta revpatch=sbvmm,cpuname
 与 OpenCore 官方 `Docs/Sample.plist` 相比，本配置围绕本机硬件做了以下调整：
 
 1. 增加 CPUID 覆盖。Arrow Lake-HX 不在 Apple 支持列表中，`Cpuid1Data` 与 `Cpuid1Mask` 提供处理器特征覆盖，配合 `Booter > Quirks` 的完整内存映射设置。
-2. 自备 ACPI 表。仓库带 1 张固件 DSDT 与 10 张 SSDT，覆盖处理器电源、EC、GPI0、MCHC、RTC/AWAC、SMBus、USB、XOSI 与 MADT 替换。
-3. 增加 ACPI 删除与补丁。`DMAR` 与固件 `APIC` 表被移除并替换，另有条件 Scope 声明补丁。
-4. 打开 `RebaseRegions`。该 quark（原文如此）用于重算 ACPI 区域偏移，默认示例中为关闭。
+2. 自备 ACPI 表。仓库带 1 张修正后的 DSDT 与 10 张 SSDT；其中 `APIC-LAPIC.aml` 将原始 MADT 中 24 个有效 Type 9 x2APIC CPU 转换为传统 Local APIC 兼容表示，并保留 UID、真实 APIC ID 与 enabled 状态。
+3. 修正 DSDT 的 GNVS 运行时地址。原替换值相对本次固件实际地址偏移 `0x1000`；校正后 USB 鼠标、内置 NVMe 与 Recovery 操作恢复正常。
+4. 增加 ACPI 删除与替换。固件 `DMAR` 与原始 `APIC` 表被移除，其中 `APIC` 由兼容 MADT 接管；`RebaseRegions` 保持开启，用于配合 ACPI 区域重定位。
 5. 增加 `ResizeAppleGpuBars=0` 与 `ResizeGpuBars=-1`。两者与 NVIDIA 显卡的 BAR 配置配合。
 6. 使用 `MacBookPro16,2` 机型与 `ProcessorType=0x0F01`。机型用于电源管理与显示服务，处理器类型用于 CPU 名称显示。
-7. 28 个 kext 的完整驱动集合。默认示例只带 Lilu、VirtualSMC、WhateverGreen，本配置补齐无线、蓝牙、音频、触控板、电池、USB 映射、NVMe、AMFI 与 CPU 拓扑等组件。
+7. 28 个 kext 的完整驱动集合。默认示例只带 Lilu、VirtualSMC、WhateverGreen，本配置补齐无线、蓝牙、触控板、电池、USB 映射、NVMe、AMFI 与 CPU 拓扑等组件。
 8. 替换 UEFI 驱动。`HfsPlus.efi` 使用 Apple 的 HFS+ 驱动，`apfs_aligned.efi` 用于 macOS 26 的 APFS 兼容，`ResetNvramEntry.efi` 提供菜单入口。
 9. 增加大段 `boot-args`。显示、无线、AMFI 与调试参数按本机组合保留。
 10. 保留 OpenCanopy 资源但使用文本菜单。`Resources/` 中保留 Font、Image、Label，`PickerMode` 取 `Builtin`。
