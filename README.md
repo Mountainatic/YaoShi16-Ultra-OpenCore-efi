@@ -314,7 +314,7 @@ YaoShi16-Ultra-OpenCore-efi/
 
 ## 许可与免责
 
-本仓库内的配置整理与文档由 Mountainatic 维护，供同型号机器参考。各 kext 与驱动遵循其上游项目的许可证，使用与再分发前请阅读对应仓库的许可条款。
+本仓库内的原创文档（`README.md`、`docs/`）由 Mountainatic 维护，以 MIT 许可发布，全文见 `LICENSE-MIT`。`EFI/` 内的第三方组件遵循各自上游许可：OpenCore 为 BSD-3-Clause，Apple UEFI 二进制版权归 Apple，各 kext 见其上游仓库。完整说明见 `NOTICE.md`。
 
 NullMoth NvGfx 驱动采用 PolyForm Noncommercial License 1.0.0，仅限非商业用途，其文件安装到 macOS 系统卷，本仓库只保留引导参数。`HfsPlus.efi` 与 `apfs_aligned.efi` 为 Apple 提供的 UEFI 驱动二进制，版权归 Apple 所有，随社区 EFI 惯例分发；需要更严格的合规处理时，可以在本地替换。
 
