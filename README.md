@@ -52,7 +52,7 @@
 | 电池 | 可用 | SMCBatteryManager | 电量与充电状态 |
 | 触控板 | 可用 | VoodooI2C 2.9.1、VoodooI2C-7F4F、VoodooI2CHID | 含 VoodooGPIO 插件 |
 | 键盘与亮度键 | 可用 | VoodooPS2Controller 2.3.8、BrightnessKeys | PS2 与 I2C 两条输入路径并存 |
-| USB 端口 | 部分定制 | USBToolBox、UTBMap-Mountainatic | Type-C 的 USB 2.0 与 Type-A 的 USB 3.x 已完成定制，另两组仍待补齐 |
+| USB 端口 | 部分定制 | USBToolBox、本机 UTBMap | Type-C 的 USB 2.0 与 Type-A 的 USB 3.x 已完成定制，另两组仍待补齐 |
 | NVMe 电源管理 | 可用 | NVMeFix 1.1.4 | |
 | AMFI 放宽 | 可用 | AMFIPass 1.4.1、boot-args | 允许加载未签名驱动 |
 | 有线网卡 | 驱动已加载，待验证 | RTL812xLucy 1.1.100 | 与 RTL8125 系列对应 |
@@ -70,7 +70,7 @@
 | Type-C | 已定制 | 尚未定制 |
 | Type-A | 尚未定制 | 已定制 |
 
-这里的“已定制”表示对应端口已经纳入当前 USBToolBox / `UTBMap-Mountainatic` 的本机映射；“尚未定制”表示该组合仍需要继续核对端口编号、连接关系与实际枚举结果。
+这里的“已定制”表示对应端口已经纳入当前 USBToolBox / 本机 UTBMap；“尚未定制”表示该组合仍需要继续核对端口编号、连接关系与实际枚举结果。
 
 Thunderbolt / USB4 路径目前尚未完成适配，也没有作为当前 EFI 的可用功能声明。后续如果时间和驱动条件允许，计划继续探索以下方向：
 
@@ -137,7 +137,7 @@ Intel Xe-LPG 核显的 macOS 驱动是一个独立项目，仓库见 [Intel Xe-L
 `EFI/OC/Kexts/` 下为 28 个顶层 kext，其中 26 个启用，2 个按设计禁用：
 
 - `itlwm.kext`：备用无线方案，与 AirportItlwm 二选一；
-- `UTBDefault.kext`：USBToolBox 的默认注入器，由本机端口映射 UTBMap-Mountainatic 替代。
+- `UTBDefault.kext`：USBToolBox 的默认注入器，由本机 UTBMap 替代。
 
 `Kernel > Add` 中另有 1 个插件保持禁用：`VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext`，输入插件由 VoodooI2C 的同名插件统一提供。`Kernel > Add` 共 35 个条目，覆盖 28 个 kext 及其插件。逐文件清单与版本见 [docs/efi-inventory.md](docs/efi-inventory.md)。
 
@@ -327,7 +327,7 @@ YaoShi16-Ultra-OpenCore-efi/
 | --- | --- | --- | --- |
 | NVMeFix | 1.1.4 | NVMe 电源管理修正 | [acidanthera/NVMeFix](https://github.com/acidanthera/NVMeFix) |
 | USBToolBox | 1.2.0 | USB 端口映射注入框架 | [USBToolBox/kext](https://github.com/USBToolBox/kext) |
-| UTBMap-Mountainatic | 1.0.1 | 本机 USB 端口映射 | 使用 [USBToolBox](https://github.com/USBToolBox/tool) 在本机生成 |
+| 本机 UTBMap | 1.0.1 | 本机 USB 端口映射 | 使用 [USBToolBox](https://github.com/USBToolBox/tool) 在本机生成；实际文件名见 `docs/efi-inventory.md` |
 | UTBDefault | 1.0 | 默认注入器，已禁用 | [USBToolBox/kext](https://github.com/USBToolBox/kext) |
 
 ### OpenCore 与 UEFI 驱动
