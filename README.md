@@ -1,6 +1,6 @@
 # 耀世 16 Ultra OpenCore EFI
 
-机械革命耀世 16 Ultra（Yaoshi 16 Ultra）在 macOS Tahoe 26 下的 OpenCore 配置仓库。本仓库提供一套可启动的 EFI 目录、脱敏后的 `config.plist`、组件清单与适配记录，给同型号机器的黑苹果安装提供可复现的起点。仓库地址为 [Mountainatic/YaoShi16-Ultra-OpenCore-efi](https://github.com/Mountainatic/YaoShi16-Ultra-OpenCore-efi)。
+机械革命耀世 16 Ultra（Yaoshi 16 Ultra）在 macOS Tahoe 26 下的 OpenCore 配置仓库。本仓库提供一套可启动的 EFI 目录、脱敏后的 `config.plist`、组件清单与适配记录，给同型号机器的黑苹果安装提供可复现的起点。
 
 本仓库的 EFI 目录可以直接复制到 FAT32 格式的 ESP 分区。`config.plist` 中的 SMBIOS 字段已经换成占位符，使用前请按后文步骤生成自己的序列号。NVIDIA 显示驱动与 Intel iGPU 驱动是独立项目，按照后文说明单独获取。
 
@@ -84,7 +84,7 @@ Thunderbolt / USB4 路径目前尚未完成适配，也没有作为当前 EFI �
 
 ## 进行中的工作：Intel Xe iGPU
 
-Intel Xe-LPG 核显的 macOS 驱动是一个独立项目，仓库地址为 [Mountainatic/intel-xe-lpg-igpu-macos](https://github.com/Mountainatic/intel-xe-lpg-igpu-macos)。该项目的目标是为 `8086:7D67` 提供可用的显示与加速路径，当前处于 bring-up 阶段，内屏已能使用 2560x1600 60 Hz 级别的时序。
+Intel Xe-LPG 核显的 macOS 驱动是一个独立项目，仓库见 [Intel Xe-LPG iGPU 驱动项目](https://github.com/Mountainatic/intel-xe-lpg-igpu-macos)。该项目的目标是为 `8086:7D67` 提供可用的显示与加速路径，当前处于 bring-up 阶段，内屏已能使用 2560x1600 60 Hz 级别的时序。
 
 内屏画面目前由独立显卡路径承担，核显项目在此基础上逐步接管。接管过程的测试记录保存在本仓库的 `docs/bring-up-history/` 目录：
 
@@ -343,11 +343,11 @@ YaoShi16-Ultra-OpenCore-efi/
 | 项目 | 版本 | 说明 |
 | --- | --- | --- |
 | [NullMoth nvidia-macos-driver](https://github.com/nullmoth/nvidia-macos-driver) | 2.5.3 | NVIDIA 显示驱动，安装在 macOS 内，本仓库不包含其文件 |
-| [Mountainatic/intel-xe-lpg-igpu-macos](https://github.com/Mountainatic/intel-xe-lpg-igpu-macos) | 开发中 | Intel Xe-LPG 核显驱动项目 |
+| [Intel Xe-LPG iGPU 驱动项目](https://github.com/Mountainatic/intel-xe-lpg-igpu-macos) | 开发中 | Intel Xe-LPG 核显驱动项目 |
 
 ## 许可与免责
 
-本仓库内的原创文档（`README.md`、`docs/`）由 Mountainatic 维护，以 MIT 许可发布，全文见 `LICENSE-MIT`。`EFI/` 内的第三方组件遵循各自上游许可：OpenCore 为 BSD-3-Clause，Apple UEFI 二进制版权归 Apple，各 kext 见其上游仓库。完整说明见 `NOTICE.md`。
+本仓库内的原创文档（`README.md`、`docs/`）以 MIT 许可发布，全文见 `LICENSE-MIT`。`EFI/` 内的第三方组件遵循各自上游许可：OpenCore 为 BSD-3-Clause，Apple UEFI 二进制版权归 Apple，各 kext 见其上游仓库。完整说明见 `NOTICE.md`。
 
 NullMoth NvGfx 驱动采用 PolyForm Noncommercial License 1.0.0，仅限非商业用途，其文件安装到 macOS 系统卷，本仓库只保留引导参数。`HfsPlus.efi` 与 `apfs_aligned.efi` 为 Apple 提供的 UEFI 驱动二进制，版权归 Apple 所有，随社区 EFI 惯例分发；需要更严格的合规处理时，可以在本地替换。
 
